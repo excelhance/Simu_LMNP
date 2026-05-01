@@ -13,12 +13,14 @@ import {
   cashflowMensuel
 } from './finance.js';
 import { microFoncier } from './fiscalite.js';
-import { scoreLot1 } from './scoring.js';
+import { scoreBien } from './scoring.js';
+import { evaluerAlertes } from './alertes.js';
+import { loadPonderations } from '../persistence/storage.js';
 
 /**
  * Construit l'ensemble des indicateurs pour un bien LD nue / micro-foncier.
  * @param {object} bien
- * @returns {object} indicateurs + fiscalité + scoring + amortissement résumé
+ * @returns {object} indicateurs + fiscalité + scoring + alertes + amortissement résumé
  */
 export function calculerLot1(bien) {
   // ─── Coût total d'acquisition + capital emprunté ──────────────────
@@ -84,16 +86,21 @@ export function calculerLot1(bien) {
     a20: capitalRestantA(20)
   };
 
-  // ─── Scoring Lot 1 (F1 + F2) ──────────────────────────────────────
-  const scoring = scoreLot1(bien, {
-    rendementBrut: rB,
-    rendementNet: rN,
-    rendementNetNet: rNN,
-    cashflowMensuel: cashflow,
-    effortEpargne
-  });
+  // ─── Scoring complet (F1 + F2 + F3 + F4) ──────────────────────────
+  const ponderations = loadPonderations();
+  const scoring = scoreBien(
+    bien,
+    {
+      rendementBrut: rB,
+      rendementNet: rN,
+      rendementNetNet: rNN,
+      cashflowMensuel: cashflow,
+      effortEpargne
+    },
+    ponderations
+  );
 
-  return {
+  const indicateurs = {
     CTA,
     capitalEmprunte,
     mensualiteCredit: mCredit,
@@ -111,4 +118,7 @@ export function calculerLot1(bien) {
     resumeAmort,
     scoring
   };
+
+  indicateurs.alertes = evaluerAlertes(bien, indicateurs);
+  return indicateurs;
 }

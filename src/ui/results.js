@@ -1,8 +1,9 @@
 // src/ui/results.js
-// Écran « Restitution » : score partiel + indicateurs + détail + scoring détaillé.
+// Écran « Restitution » : score global, indicateurs, alertes, détail des calculs et scoring.
 
 import { getBien, deleteBien } from '../persistence/storage.js';
 import { calculerLot1 } from '../core/calcul.js';
+import { NIVEAUX } from '../core/alertes.js';
 import {
   formatEuros,
   formatPourcent,
@@ -18,6 +19,36 @@ function bloc(titre, contenu) {
 
 function ligneIndicateur(label, valeur) {
   return `<div class="flex justify-between border-b border-slate-100 last:border-0 py-1.5 text-sm"><span class="text-slate-600">${label}</span><span class="font-medium text-slate-900">${valeur}</span></div>`;
+}
+
+/** Mini-jauge horizontale pour un score de famille. */
+function jaugeFamille(label, score, poids) {
+  const pct = Math.max(0, Math.min(100, score * 10));
+  const cls = couleurScore(score);
+  return `
+    <div class="space-y-1">
+      <div class="flex justify-between text-xs">
+        <span class="font-medium text-slate-700">${label}</span>
+        <span class="text-slate-500">${formatNombre(score, 2)} / 10 · poids ${formatNombre(poids * 100, 0)} %</span>
+      </div>
+      <div class="h-2 rounded bg-slate-200 overflow-hidden">
+        <div class="${cls} h-2" style="width:${pct}%"></div>
+      </div>
+    </div>`;
+}
+
+function blocAlertes(alertes) {
+  if (!alertes || alertes.length === 0) {
+    return bloc('Bloc 4 — Alertes', `<p class="text-sm text-emerald-700">Aucune alerte. ✓</p>`);
+  }
+  const lis = alertes.map((a) => {
+    const styles = a.niveau === NIVEAUX.ROUGE
+      ? 'border-l-4 border-red-600 bg-red-50 text-red-800'
+      : 'border-l-4 border-orange-500 bg-orange-50 text-orange-800';
+    const icone = a.niveau === NIVEAUX.ROUGE ? '🔴' : '🟠';
+    return `<li class="${styles} px-3 py-2 rounded-r"><span class="mr-1">${icone}</span>${a.message}</li>`;
+  }).join('');
+  return bloc('Bloc 4 — Alertes', `<ul class="space-y-2 text-sm">${lis}</ul>`);
 }
 
 function tableauScoring(parCritere, parFamille) {
@@ -40,6 +71,10 @@ function tableauScoring(parCritere, parFamille) {
       </tr>`;
   }).join('');
 
+  const totaux = ['F1', 'F2', 'F3', 'F4'].map((f) =>
+    `<tr class="font-medium"><td colspan="3" class="py-1.5 text-right pr-2">Total famille ${f} :</td><td colspan="4" class="py-1.5 pr-2">${formatNombre(parFamille[f], 2)} / 10</td></tr>`
+  ).join('');
+
   return `
     <div class="overflow-x-auto">
       <table class="w-full text-sm">
@@ -55,16 +90,7 @@ function tableauScoring(parCritere, parFamille) {
           </tr>
         </thead>
         <tbody>${lignes}</tbody>
-        <tfoot>
-          <tr class="border-t-2 border-slate-300 font-medium">
-            <td colspan="3" class="py-1.5 text-right pr-2">Total famille F1 :</td>
-            <td colspan="4" class="py-1.5 pr-2">${formatNombre(parFamille.F1, 2)} / 10</td>
-          </tr>
-          <tr class="font-medium">
-            <td colspan="3" class="py-1.5 text-right pr-2">Total famille F2 :</td>
-            <td colspan="4" class="py-1.5 pr-2">${formatNombre(parFamille.F2, 2)} / 10</td>
-          </tr>
-        </tfoot>
+        <tfoot class="border-t-2 border-slate-300">${totaux}</tfoot>
       </table>
     </div>`;
 }
@@ -94,17 +120,22 @@ export function renderResults(container, id) {
     </header>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      ${bloc('Bloc 1 — Score partiel', `
-        <div class="flex items-center gap-4">
+      ${bloc('Bloc 1 — Score global', `
+        <div class="flex items-center gap-4 mb-4">
           <div class="${scoreClass} rounded-full w-24 h-24 flex flex-col items-center justify-center shadow-inner">
             <span class="text-3xl font-bold">${formatNombre(s.global, 1)}</span>
             <span class="text-xs">/ 10</span>
           </div>
           <div>
             <div class="font-semibold">${libelleScore(s.global)}</div>
-            <div class="text-sm text-slate-500">F1 : ${formatNombre(s.parFamille.F1, 2)} · F2 : ${formatNombre(s.parFamille.F2, 2)}</div>
-            <div class="text-xs text-amber-700 mt-2">Score partiel (financier + bien). Critères marché et risque non encore intégrés.</div>
+            <div class="text-xs text-slate-500 mt-1">Score complet F1 + F2 + F3 + F4 (TRI 10 ans neutralisé jusqu’au Lot 3).</div>
           </div>
+        </div>
+        <div class="space-y-2">
+          ${jaugeFamille('F1 — Financier', s.parFamille.F1, s.pondsFamille.F1)}
+          ${jaugeFamille('F2 — Bien', s.parFamille.F2, s.pondsFamille.F2)}
+          ${jaugeFamille('F3 — Marché', s.parFamille.F3, s.pondsFamille.F3)}
+          ${jaugeFamille('F4 — Risque', s.parFamille.F4, s.pondsFamille.F4)}
         </div>
       `)}
 
@@ -137,7 +168,11 @@ export function renderResults(container, id) {
         ${ligneIndicateur('Capital restant à 20 ans', r.resumeAmort.a20 != null ? formatEuros(r.resumeAmort.a20) : '—')}
       `)}
 
-      ${bloc('Bloc 4 — Détail scoring', tableauScoring(s.parCritere, s.parFamille))}
+      ${blocAlertes(r.alertes)}
+    </div>
+
+    <div class="mt-4">
+      ${bloc('Bloc 5 — Détail scoring', tableauScoring(s.parCritere, s.parFamille))}
     </div>
   `;
 

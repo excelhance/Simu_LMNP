@@ -86,6 +86,7 @@ export function renderList(container) {
           <option value="">Tous les régimes</option>
           <option value="micro-foncier">Micro-foncier</option>
         </select>
+        <button class="btn-secondary" data-action="settings" title="Pondérations">⚙ Pondérations</button>
         <button class="btn-primary" data-action="new">+ Nouveau bien</button>
       </div>
     </header>
@@ -93,6 +94,7 @@ export function renderList(container) {
   `;
 
   container.querySelector('[data-action="new"]').addEventListener('click', () => navigate('/new'));
+  container.querySelector('[data-action="settings"]').addEventListener('click', () => navigate('/settings'));
 
   container.querySelectorAll('[data-action="view"]').forEach((b) =>
     b.addEventListener('click', (e) => navigate(`/view/${e.currentTarget.dataset.id}`)));
