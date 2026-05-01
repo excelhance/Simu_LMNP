@@ -198,10 +198,10 @@ export function renderForm(container, idEdition = null) {
         ${field({ id: 'ascenseur', label: 'Ascenseur', type: 'checkbox', value: bien.ascenseur })}
         ${field({ id: 'exterieur', label: 'Extérieur', value: bien.exterieur, options: [['aucun', 'Aucun'], ['balcon', 'Balcon'], ['terrasse', 'Terrasse'], ['jardin', 'Jardin']] })}
         ${field({ id: 'dpe', label: 'DPE', value: bien.dpe, options: ['A','B','C','D','E','F','G'].map(l => [l, l]) })}
-        ${field({ id: 'etatGeneral', label: 'État général (1-5)', value: bien.etatGeneral, step: '1' })}
+        ${field({ id: 'etatGeneral', label: 'État général (1-5)', value: bien.etatGeneral, step: '1', hint: '1 = très dégradé · 5 = neuf / refait à neuf' })}
         ${field({ id: 'travauxAPrevoir', label: 'Travaux à prévoir', suffix: '€', value: bien.travauxAPrevoir })}
         ${field({ id: 'chargesCopro', label: 'Charges copro annuelles', suffix: '€', value: bien.chargesCopro })}
-        ${field({ id: 'etatCopro', label: 'État copropriété (1-5)', value: bien.etatCopro, step: '1' })}
+        ${field({ id: 'etatCopro', label: 'État copropriété (1-5)', value: bien.etatCopro, step: '1', hint: '1 = très dégradée · 5 = excellente' })}
       `)}
 
       ${section('sec-marche', 'B-bis. Marché et risque', `
