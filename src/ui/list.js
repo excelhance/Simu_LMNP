@@ -24,7 +24,22 @@ const LIBELLE_REGIME = {
 };
 
 export function renderList(container) {
-  const biens = listBiens();
+  // Pré-calcul du score pour chaque bien, puis tri décroissant.
+  // Les biens dont le score n'est pas calculable sont relégués en fin de liste.
+  const biensAvecScore = listBiens().map((b) => {
+    let score = null;
+    try {
+      score = calculerLot1(b).scoring.global;
+    } catch { /* données partielles */ }
+    return { bien: b, score };
+  });
+  biensAvecScore.sort((a, b) => {
+    if (a.score == null && b.score == null) return 0;
+    if (a.score == null) return 1;
+    if (b.score == null) return -1;
+    return b.score - a.score;
+  });
+  const biens = biensAvecScore.map((x) => x.bien);
 
   const corps = biens.length === 0
     ? `<div class="card text-slate-500 text-center py-10">Aucun bien sauvegardé. Commencez par en ajouter un.</div>`
@@ -37,21 +52,16 @@ export function renderList(container) {
               <th class="py-2 pr-3">Type</th>
               <th class="py-2 pr-3">Régime</th>
               <th class="py-2 pr-3 text-right">Prix</th>
-              <th class="py-2 pr-3 text-center">Score</th>
+              <th class="py-2 pr-3 text-center">Score ↓</th>
               <th class="py-2 pr-3">Date</th>
               <th class="py-2 pr-3"></th>
             </tr>
           </thead>
           <tbody>
-            ${biens.map((b) => {
-              let scoreCell = '<span class="text-slate-400">—</span>';
-              try {
-                const r = calculerLot1(b);
-                const cls = couleurScore(r.scoring.global);
-                scoreCell = `<span class="${cls} px-2 py-0.5 rounded text-xs font-semibold">${formatNombre(r.scoring.global, 1)}</span>`;
-              } catch {
-                /* score non calculable si données partielles */
-              }
+            ${biensAvecScore.map(({ bien: b, score }) => {
+              const scoreCell = score == null
+                ? '<span class="text-slate-400">—</span>'
+                : `<span class="${couleurScore(score)} px-2 py-0.5 rounded text-xs font-semibold">${formatNombre(score, 1)}</span>`;
               return `
                 <tr class="border-b border-slate-100 last:border-0">
                   <td class="py-2 pr-3 font-medium">${b.nom || '—'}</td>
