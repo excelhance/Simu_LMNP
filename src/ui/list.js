@@ -11,7 +11,9 @@ const LIBELLE_TYPE = {
   LD_meublee: 'LD meublée',
   LCD: 'LCD',
   LMD: 'LMD',
-  coloc: 'Colocation'
+  coloc: 'Colocation',
+  coloc_meublee: 'Coloc meublée',
+  coloc_nue: 'Coloc nue'
 };
 
 const LIBELLE_REGIME = {
@@ -92,12 +94,18 @@ export function renderList(container) {
           <option value="">Tous les types</option>
           <option value="LD_nue">LD nue</option>
           <option value="LD_meublee">LD meublée</option>
+          <option value="LCD">LCD</option>
+          <option value="LMD">LMD</option>
+          <option value="coloc_meublee">Coloc meublée</option>
+          <option value="coloc_nue">Coloc nue</option>
         </select>
         <select id="filtreRegime" class="rounded-md border border-slate-300 bg-white px-2 py-1 text-sm">
           <option value="">Tous les régimes</option>
           <option value="micro-foncier">Micro-foncier</option>
           <option value="reel-foncier">Réel foncier</option>
           <option value="micro-bic-lmnp">Micro-BIC LMNP</option>
+          <option value="micro-bic-tourisme-classe">Micro-BIC tourisme classé</option>
+          <option value="micro-bic-tourisme-non-classe">Micro-BIC tourisme non classé</option>
           <option value="reel-lmnp">Réel LMNP</option>
         </select>
         <button class="btn-secondary" data-action="settings" title="Pondérations">⚙ Pondérations</button>

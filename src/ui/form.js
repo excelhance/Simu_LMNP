@@ -8,10 +8,14 @@ import { formatNombre } from '../utils/format.js';
 import { FISCAL } from '../core/constants.js';
 import { navigate } from '../utils/router.js';
 
-// ─── Catalogue types / régimes (évoluera en 3b avec LCD/LMD/coloc) ────
+// ─── Catalogue types / régimes ────────────────────────────────────────
 const TYPES = [
   ['LD_nue', 'LD nue'],
-  ['LD_meublee', 'LD meublée']
+  ['LD_meublee', 'LD meublée'],
+  ['LCD', 'LCD (courte durée / Airbnb)'],
+  ['LMD', 'LMD (bail mobilité)'],
+  ['coloc_meublee', 'Colocation meublée'],
+  ['coloc_nue', 'Colocation nue']
 ];
 
 const REGIMES_PAR_TYPE = {
@@ -22,10 +26,27 @@ const REGIMES_PAR_TYPE = {
   LD_meublee: [
     ['micro-bic-lmnp', 'Micro-BIC LMNP (abattement 50 %)'],
     ['reel-lmnp', 'Réel LMNP (avec amortissement)']
+  ],
+  LCD: [
+    ['micro-bic-tourisme-classe', 'Micro-BIC tourisme classé (50 %, plafond 77 700 €)'],
+    ['micro-bic-tourisme-non-classe', 'Micro-BIC tourisme non classé (30 %, plafond 15 000 €)'],
+    ['reel-lmnp', 'Réel LMNP (avec amortissement)']
+  ],
+  LMD: [
+    ['micro-bic-lmnp', 'Micro-BIC LMNP (abattement 50 %)'],
+    ['reel-lmnp', 'Réel LMNP (avec amortissement)']
+  ],
+  coloc_meublee: [
+    ['micro-bic-lmnp', 'Micro-BIC LMNP (abattement 50 %)'],
+    ['reel-lmnp', 'Réel LMNP (avec amortissement)']
+  ],
+  coloc_nue: [
+    ['micro-foncier', 'Micro-foncier (abattement 30 %)'],
+    ['reel-foncier', 'Réel foncier (charges + déficit foncier)']
   ]
 };
 
-const TYPES_MEUBLES = new Set(['LD_meublee', 'LCD', 'LMD']); // coloc-meublée à venir 3b
+const TYPES_MEUBLES = new Set(['LD_meublee', 'LCD', 'LMD', 'coloc_meublee']);
 const REGIMES_REEL_BIC = new Set(['reel-lmnp']);
 
 /** Valeurs par défaut pour un nouveau bien. */
@@ -57,8 +78,24 @@ function defaultBien() {
     dureeCredit: 20,
     tauxNominal: 0.0326,
     tauxAssurance: 0.0020,
+    // LD nue / meublée
     loyerMensuelHC: null,
     vacanceMois: 0.5,
+    // LCD
+    lcdADR: null,
+    lcdTauxOccupation: 0.65,
+    lcdFraisConciergerie: 0.22,
+    lcdConsommablesMensuels: 50,
+    lcdMeubleClasse: false,
+    // LMD
+    lmdLoyerMensuel: null,
+    lmdTauxOccupation: 0.80,
+    lmdChargesMensuelles: 0,
+    // Coloc
+    colocNbChambres: 3,
+    colocLoyerChambre: null,
+    colocVacanceChambre: 1,
+    colocChargesMensuelles: 0,
     taxeFonciere: null,
     assurancePNO: 0,
     fraisGestionTaux: 0,
@@ -144,8 +181,20 @@ function lireFormulaire(form, bienBase) {
   data.dureeCredit = toNumber(form.dureeCredit.value) || 0;
   data.tauxNominal = (toNumber(form.tauxNominal.value) || 0) / 100;
   data.tauxAssurance = (toNumber(form.tauxAssurance.value) || 0) / 100;
-  data.loyerMensuelHC = toNumber(form.loyerMensuelHC.value);
-  data.vacanceMois = toNumber(form.vacanceMois.value) ?? 0;
+  data.loyerMensuelHC = toNumber(form.loyerMensuelHC?.value);
+  data.vacanceMois = toNumber(form.vacanceMois?.value) ?? 0;
+  data.lcdADR = toNumber(form.lcdADR?.value);
+  data.lcdTauxOccupation = (toNumber(form.lcdTauxOccupation?.value) ?? 0) / 100;
+  data.lcdFraisConciergerie = (toNumber(form.lcdFraisConciergerie?.value) ?? 0) / 100;
+  data.lcdConsommablesMensuels = toNumber(form.lcdConsommablesMensuels?.value) || 0;
+  data.lcdMeubleClasse = !!form.lcdMeubleClasse?.checked;
+  data.lmdLoyerMensuel = toNumber(form.lmdLoyerMensuel?.value);
+  data.lmdTauxOccupation = (toNumber(form.lmdTauxOccupation?.value) ?? 0) / 100;
+  data.lmdChargesMensuelles = toNumber(form.lmdChargesMensuelles?.value) || 0;
+  data.colocNbChambres = toNumber(form.colocNbChambres?.value) || 0;
+  data.colocLoyerChambre = toNumber(form.colocLoyerChambre?.value);
+  data.colocVacanceChambre = toNumber(form.colocVacanceChambre?.value) ?? 0;
+  data.colocChargesMensuelles = toNumber(form.colocChargesMensuelles?.value) || 0;
   data.taxeFonciere = toNumber(form.taxeFonciere.value);
   data.assurancePNO = toNumber(form.assurancePNO.value) || 0;
   data.fraisGestionTaux = (toNumber(form.fraisGestionTaux.value) || 0) / 100;
@@ -185,6 +234,21 @@ function rafraichirChampsConditionnels(form) {
 
   const amortBlock = form.querySelector('[data-cond="amort"]');
   if (amortBlock) amortBlock.classList.toggle('hidden', !reelBIC);
+
+  // Section D : un seul bloc visible selon le type.
+  const blockMap = {
+    LD_nue: 'hyp-LD',
+    LD_meublee: 'hyp-LD',
+    LCD: 'hyp-LCD',
+    LMD: 'hyp-LMD',
+    coloc_meublee: 'hyp-coloc',
+    coloc_nue: 'hyp-coloc'
+  };
+  const actif = blockMap[type] || 'hyp-LD';
+  ['hyp-LD', 'hyp-LCD', 'hyp-LMD', 'hyp-coloc'].forEach((key) => {
+    const el = form.querySelector(`[data-cond="${key}"]`);
+    if (el) el.classList.toggle('hidden', key !== actif);
+  });
 }
 
 function rafraichirCalculsLive(form) {
@@ -285,8 +349,28 @@ export function renderForm(container, idEdition = null) {
       `)}
 
       ${section('sec-loc', 'D. Hypothèses locatives', `
-        ${field({ id: 'loyerMensuelHC', label: 'Loyer mensuel HC', suffix: '€', value: bien.loyerMensuelHC })}
-        ${field({ id: 'vacanceMois', label: 'Vacance', suffix: 'mois/an', value: bien.vacanceMois, step: '0.1' })}
+        <div data-cond="hyp-LD" class="contents">
+          ${field({ id: 'loyerMensuelHC', label: 'Loyer mensuel HC', suffix: '€', value: bien.loyerMensuelHC })}
+          ${field({ id: 'vacanceMois', label: 'Vacance', suffix: 'mois/an', value: bien.vacanceMois, step: '0.1' })}
+        </div>
+        <div data-cond="hyp-LCD" class="contents">
+          ${field({ id: 'lcdADR', label: 'ADR moyen', suffix: '€/nuit', value: bien.lcdADR })}
+          ${field({ id: 'lcdTauxOccupation', label: "Taux d'occupation prévisionnel", suffix: '%', value: ((bien.lcdTauxOccupation ?? 0.65) * 100).toFixed(0), step: '1', hint: 'Plage typique T2 Nancy : 40-75 %' })}
+          ${field({ id: 'lcdFraisConciergerie', label: 'Frais conciergerie', suffix: '% du CA', value: ((bien.lcdFraisConciergerie ?? 0.22) * 100).toFixed(0), step: '1', hint: 'Médiane Nancy : 22 %' })}
+          ${field({ id: 'lcdConsommablesMensuels', label: 'Consommables / linge', suffix: '€/mois', value: bien.lcdConsommablesMensuels })}
+          ${field({ id: 'lcdMeubleClasse', label: 'Meublé classé Atout France', type: 'checkbox', value: bien.lcdMeubleClasse })}
+        </div>
+        <div data-cond="hyp-LMD" class="contents">
+          ${field({ id: 'lmdLoyerMensuel', label: 'Loyer mensuel forfaitaire', suffix: '€', value: bien.lmdLoyerMensuel, hint: 'Charges incluses (bail mobilité)' })}
+          ${field({ id: 'lmdTauxOccupation', label: "Taux d'occupation prévisionnel", suffix: '%', value: ((bien.lmdTauxOccupation ?? 0.80) * 100).toFixed(0), step: '1', hint: 'Plage typique : 70-90 %' })}
+          ${field({ id: 'lmdChargesMensuelles', label: 'Charges (eau / énergie / internet)', suffix: '€/mois', value: bien.lmdChargesMensuelles })}
+        </div>
+        <div data-cond="hyp-coloc" class="contents">
+          ${field({ id: 'colocNbChambres', label: 'Nombre de chambres louées', value: bien.colocNbChambres, step: '1' })}
+          ${field({ id: 'colocLoyerChambre', label: 'Loyer par chambre', suffix: '€/mois', value: bien.colocLoyerChambre })}
+          ${field({ id: 'colocVacanceChambre', label: 'Vacance moyenne par chambre', suffix: 'mois/an', value: bien.colocVacanceChambre, step: '0.1', hint: 'Standard étudiant : 1 mois/an' })}
+          ${field({ id: 'colocChargesMensuelles', label: 'Charges totales (eau, énergie, internet)', suffix: '€/mois', value: bien.colocChargesMensuelles })}
+        </div>
       `)}
 
       ${section('sec-charges', 'E. Charges récurrentes', `

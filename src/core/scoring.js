@@ -96,7 +96,9 @@ export function scoreBien(bien, indicateursFinanciers, ponderations) {
     F3: ponderations?.F3 || PONDERATIONS_F3,
     F4: ponderations?.F4 || PONDERATIONS_F4
   };
-  const type = bien.typeLocation || 'LD_nue';
+  // Les sous-types coloc_meublee / coloc_nue partagent la même grille de pondération « coloc ».
+  const typeBrut = bien.typeLocation || 'LD_nue';
+  const type = (typeBrut === 'coloc_meublee' || typeBrut === 'coloc_nue') ? 'coloc' : typeBrut;
 
   // ─── Sous-scores F1 ────────────────────────────────────────────────
   const sC01 = scoreLineaire(ind.rendementBrut ?? 0, SEUILS_SCORING.C01_rendementBrut);

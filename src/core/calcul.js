@@ -19,13 +19,72 @@ import { evaluerAlertes } from './alertes.js';
 import { loadPonderations } from '../persistence/storage.js';
 
 /**
- * Loyer annuel brut selon le type de location (Lot 3a : LD nue + LD meublée ; les
- * autres types — LCD/LMD/coloc — arrivent au sous-lot 3b).
+ * Loyer annuel brut net de vacance, selon le type de location.
+ * - LD nue / meublée : loyerMensuelHC × (12 - vacanceMois)
+ * - LCD              : ADR × 365 × tauxOccupation
+ * - LMD              : loyer mensuel forfaitaire × 12 × tauxOccupation
+ * - Coloc            : nbChambres × loyerChambre × (12 - vacanceChambre)
  */
 function loyerAnnuelBrut(bien) {
-  const loyer = bien.loyerMensuelHC || 0;
-  const vacance = bien.vacanceMois ?? 0;
-  return loyer * (12 - vacance);
+  const type = bien.typeLocation || 'LD_nue';
+  switch (type) {
+    case 'LCD': {
+      const adr = bien.lcdADR || 0;
+      const to = bien.lcdTauxOccupation || 0;
+      return adr * 365 * to;
+    }
+    case 'LMD': {
+      const loyer = bien.lmdLoyerMensuel || 0;
+      const to = bien.lmdTauxOccupation || 0;
+      return loyer * 12 * to;
+    }
+    case 'coloc_meublee':
+    case 'coloc_nue': {
+      const n = bien.colocNbChambres || 0;
+      const lc = bien.colocLoyerChambre || 0;
+      const vc = bien.colocVacanceChambre ?? 0;
+      return n * lc * (12 - vc);
+    }
+    default: { // LD_nue, LD_meublee
+      const loyer = bien.loyerMensuelHC || 0;
+      const vacance = bien.vacanceMois ?? 0;
+      return loyer * (12 - vacance);
+    }
+  }
+}
+
+/**
+ * Frais d'exploitation annuels (LCD principalement) qui s'ajoutent aux
+ * charges déductibles. Pour les autres types : 0 (les frais de gestion
+ * locative sont déjà gérés via fraisGestionTaux).
+ */
+function fraisExploitationAnnuels(bien, loyerAnnuel) {
+  if (bien.typeLocation === 'LCD') {
+    const conciergerie = (bien.lcdFraisConciergerie || 0) * loyerAnnuel;
+    const consommables = (bien.lcdConsommablesMensuels || 0) * 12;
+    return conciergerie + consommables;
+  }
+  return 0;
+}
+
+/**
+ * Loyer mensuel pour le calcul du cash-flow (convention « gros chiffres » du
+ * cahier des charges : on prend le loyer mensuel typique sans soustraire la
+ * vacance pour cette ligne, car la vacance est déjà reflétée dans l'annuel).
+ */
+function loyerMensuelTypique(bien) {
+  const type = bien.typeLocation || 'LD_nue';
+  switch (type) {
+    case 'LCD':
+      return ((bien.lcdADR || 0) * 365 * (bien.lcdTauxOccupation || 0)) / 12;
+    case 'LMD':
+      return (bien.lmdLoyerMensuel || 0) * (bien.lmdTauxOccupation || 0);
+    case 'coloc_meublee':
+    case 'coloc_nue':
+      return (bien.colocNbChambres || 0) * (bien.colocLoyerChambre || 0);
+    default:
+      return bien.loyerMensuelHC || 0;
+  }
 }
 
 /**
@@ -133,13 +192,14 @@ export function calculerLot1(bien) {
   const interetsAnnee1 = amort.slice(0, 12).reduce((s, l) => s + l.interets, 0);
 
   // ─── Loyers ───────────────────────────────────────────────────────
-  const loyerMensuelHC = bien.loyerMensuelHC || 0;
+  const loyerMensuelHC = loyerMensuelTypique(bien);
   const loyerAnnuelNetVacance = loyerAnnuelBrut(bien);
 
   // ─── Charges récurrentes annuelles (hors emprunt) ─────────────────
   const fraisGestionTaux = bien.fraisGestionTaux || 0;
   const assurancePNO = bien.assurancePNO || 0;
   const fraisGestionAnnuel = loyerAnnuelNetVacance * fraisGestionTaux;
+  const fraisExploitation = fraisExploitationAnnuels(bien, loyerAnnuelNetVacance);
   // Honoraires comptables : par défaut 800 €/an si régime au réel BIC.
   const isReelBIC = bien.regimeFiscal === 'reel-lmnp';
   const honorairesComptables = isReelBIC
@@ -150,6 +210,7 @@ export function calculerLot1(bien) {
     (bien.taxeFonciere || 0) +
     assurancePNO +
     fraisGestionAnnuel +
+    fraisExploitation +
     honorairesComptables;
 
   // ─── Fiscalité (dispatch par régime) ──────────────────────────────
