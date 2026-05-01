@@ -22,6 +22,24 @@ function ligneIndicateur(label, valeur) {
 }
 
 /**
+ * Détail du TRI 10 ans : valeur de revente projetée, capital restant dû,
+ * impôt sur la plus-value, valeur nette de revente.
+ */
+function detailTRI(t) {
+  if (!t) return '';
+  const parts = [
+    `<div class="mt-3 pt-3 border-t border-slate-200 text-xs uppercase tracking-wide text-slate-500">TRI 10 ans</div>`,
+    ligneIndicateur('Valeur de revente projetée', formatEuros(t.valeurRevente)),
+    ligneIndicateur('Capital restant dû à 10 ans', formatEuros(t.capitalRestantA10)),
+    ligneIndicateur('Plus-value brute', formatEuros(t.pv.plusValueBrute)),
+    ligneIndicateur('Impôt sur PV (IR + PS)', formatEuros(t.pv.impotTotal)),
+    ligneIndicateur('Valeur nette de revente', formatEuros(t.valeurNetteRevente)),
+    ligneIndicateur('TRI calculé', t.tri != null ? formatPourcent(t.tri * 100) : '—')
+  ];
+  return parts.join('');
+}
+
+/**
  * Détail fiscal spécifique au régime sélectionné. La sortie de
  * calculerLot1().fiscalite varie selon le régime, on affiche les bonnes lignes.
  */
@@ -199,7 +217,7 @@ export function renderResults(container, id) {
         ${ligneIndicateur('Mensualité assurance', formatEuros(r.mensualiteAssurance, 2))}
         ${ligneIndicateur('Mensualité totale', formatEuros(r.mensualiteTotale, 2))}
         ${ligneIndicateur("Effort d'épargne mensuel", formatEuros(r.effortEpargne, 2))}
-        ${ligneIndicateur('TRI 10 ans', '— (Lot 3)')}
+        ${ligneIndicateur('TRI 10 ans', r.tri?.tri != null ? formatPourcent(r.tri.tri * 100) : '—')}
       `)}
     </div>
 
@@ -215,6 +233,7 @@ export function renderResults(container, id) {
         ${ligneIndicateur('Capital restant à 10 ans', r.resumeAmort.a10 != null ? formatEuros(r.resumeAmort.a10) : '—')}
         ${ligneIndicateur('Capital restant à 15 ans', r.resumeAmort.a15 != null ? formatEuros(r.resumeAmort.a15) : '—')}
         ${ligneIndicateur('Capital restant à 20 ans', r.resumeAmort.a20 != null ? formatEuros(r.resumeAmort.a20) : '—')}
+        ${detailTRI(r.tri)}
       `)}
 
       ${blocAlertes(r.alertes)}

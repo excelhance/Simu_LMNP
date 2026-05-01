@@ -16,6 +16,7 @@ import { microFoncier, microBIC, reelFoncier, reelLMNP } from './fiscalite.js';
 import { FISCAL } from './constants.js';
 import { scoreBien } from './scoring.js';
 import { evaluerAlertes } from './alertes.js';
+import { tri10ans } from './tri.js';
 import { loadPonderations } from '../persistence/storage.js';
 
 /**
@@ -236,6 +237,17 @@ export function calculerLot1(bien) {
   // Effort d'épargne = sortie de trésorerie nette mensuelle (positif = effort).
   const effortEpargne = -cashflow;
 
+  // ─── TRI 10 ans (Lot 3c) ─────────────────────────────────────────
+  // Calculé avant le scoring pour pouvoir alimenter C05.
+  const indicateursPourTRI = {
+    cashflowMensuel: cashflow,
+    resumeAmort,
+    fiscalite: fisc
+  };
+  const tri = tri10ans(bien, indicateursPourTRI);
+  // Le score lit le TRI en pourcentage (ex 6.5 pour 6.5 %).
+  const triPct = tri.tri != null ? tri.tri * 100 : null;
+
   // ─── Scoring complet (F1 + F2 + F3 + F4) ──────────────────────────
   const ponderations = loadPonderations();
   const scoring = scoreBien(
@@ -245,7 +257,8 @@ export function calculerLot1(bien) {
       rendementNet: rN,
       rendementNetNet: rNN,
       cashflowMensuel: cashflow,
-      effortEpargne
+      effortEpargne,
+      tri: triPct
     },
     ponderations
   );
@@ -267,6 +280,7 @@ export function calculerLot1(bien) {
     fiscalite: fisc,
     impotMensuel,
     resumeAmort,
+    tri,
     scoring
   };
 
