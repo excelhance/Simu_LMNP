@@ -25,6 +25,11 @@ function defaultBien() {
     travauxAPrevoir: 0,
     chargesCopro: null,
     etatCopro: 3,
+    // Lot 2 — F3 / F4 (échelles 1-5 ; 3 = neutre par défaut)
+    tensionLocative: 3,
+    proximiteCommodites: 3,
+    risqueVacance: 3,
+    zoneTendue: 'aucune',
     prix: null,
     fraisNotaire: null,
     fraisNotaireTauxAuto: true,
@@ -37,7 +42,9 @@ function defaultBien() {
     taxeFonciere: null,
     assurancePNO: 0,
     fraisGestionTaux: 0,
-    tmi: FISCAL.TMI
+    tmi: FISCAL.TMI,
+    // Lot 2 — pour l'alerte taux d'effort.
+    revenusMensuelsNets: null
   };
 }
 
@@ -104,6 +111,10 @@ function lireFormulaire(form, bienBase) {
   data.travauxAPrevoir = toNumber(form.travauxAPrevoir.value) || 0;
   data.chargesCopro = toNumber(form.chargesCopro.value);
   data.etatCopro = toNumber(form.etatCopro.value) || 3;
+  data.tensionLocative = toNumber(form.tensionLocative.value) || 3;
+  data.proximiteCommodites = toNumber(form.proximiteCommodites.value) || 3;
+  data.risqueVacance = toNumber(form.risqueVacance.value) || 3;
+  data.zoneTendue = form.zoneTendue.value;
   data.prix = toNumber(form.prix.value);
   // Frais notaire : auto si la case est cochée → 8 % du prix.
   data.fraisNotaireTauxAuto = form.fraisNotaireTauxAuto.checked;
@@ -123,6 +134,7 @@ function lireFormulaire(form, bienBase) {
   data.assurancePNO = toNumber(form.assurancePNO.value) || 0;
   data.fraisGestionTaux = (toNumber(form.fraisGestionTaux.value) || 0) / 100;
   data.tmi = (toNumber(form.tmi.value) || 30) / 100;
+  data.revenusMensuelsNets = toNumber(form.revenusMensuelsNets.value);
   return data;
 }
 
@@ -167,7 +179,7 @@ export function renderForm(container, idEdition = null) {
     <header class="mb-4 flex items-center justify-between">
       <div>
         <h1 class="text-xl font-bold">${titre}</h1>
-        <p class="text-sm text-slate-500">Lot 1 — LD nue / micro-foncier</p>
+        <p class="text-sm text-slate-500">LD nue / micro-foncier</p>
       </div>
       <button type="button" class="btn-ghost" data-action="back">← Retour</button>
     </header>
@@ -190,6 +202,17 @@ export function renderForm(container, idEdition = null) {
         ${field({ id: 'travauxAPrevoir', label: 'Travaux à prévoir', suffix: '€', value: bien.travauxAPrevoir })}
         ${field({ id: 'chargesCopro', label: 'Charges copro annuelles', suffix: '€', value: bien.chargesCopro })}
         ${field({ id: 'etatCopro', label: 'État copropriété (1-5)', value: bien.etatCopro, step: '1' })}
+      `)}
+
+      ${section('sec-marche', 'B-bis. Marché et risque', `
+        ${field({ id: 'tensionLocative', label: 'Tension locative locale (1-5)', value: bien.tensionLocative, step: '1', hint: '1 = marché atone · 5 = très demandé' })}
+        ${field({ id: 'proximiteCommodites', label: 'Proximité commodités/transports (1-5)', value: bien.proximiteCommodites, step: '1', hint: '1 = isolé · 5 = idéal' })}
+        ${field({ id: 'risqueVacance', label: 'Risque de vacance (1-5)', value: bien.risqueVacance, step: '1', hint: '1 = très risqué · 5 = quasi nul' })}
+        ${field({ id: 'zoneTendue', label: 'Encadrement des loyers', value: bien.zoneTendue, options: [
+          ['aucune', 'Aucun encadrement'],
+          ['observatoire', 'Observatoire local'],
+          ['encadrement_actif', 'Encadrement actif']
+        ] })}
       `)}
 
       ${section('sec-fin', 'C. Financier', `
@@ -219,6 +242,7 @@ export function renderForm(container, idEdition = null) {
 
       ${section('sec-fisc', 'F. Fiscalité', `
         ${field({ id: 'tmi', label: 'TMI', suffix: '%', value: (bien.tmi * 100).toFixed(0), readonly: true })}
+        ${field({ id: 'revenusMensuelsNets', label: 'Revenus mensuels nets du foyer', suffix: '€ (optionnel)', value: bien.revenusMensuelsNets, hint: 'Sert au calcul du taux d’effort. Laisser vide pour désactiver l’alerte.' })}
       `)}
 
       <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-3 flex justify-between gap-2 z-10">

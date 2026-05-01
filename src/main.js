@@ -4,6 +4,7 @@ import { route, startRouter } from './utils/router.js';
 import { renderList } from './ui/list.js';
 import { renderForm } from './ui/form.js';
 import { renderResults } from './ui/results.js';
+import { renderSettings } from './ui/settings.js';
 
 const app = document.getElementById('app');
 
@@ -33,6 +34,11 @@ route(/^\/edit\/([^/]+)$/, ([id]) => {
 route(/^\/view\/([^/]+)$/, ([id]) => {
   const view = shell();
   renderResults(view, id);
+});
+
+route(/^\/settings$/, () => {
+  const view = shell();
+  renderSettings(view);
 });
 
 startRouter();

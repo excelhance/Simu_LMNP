@@ -40,6 +40,13 @@ export function validerBien(bien) {
   if (bien.apport > bien.prix + (bien.fraisNotaire || 0)) {
     errors.apport = 'Apport supérieur au coût d’acquisition.';
   }
+  // Lot 2 — F3 / F4
+  if (!isInRange(bien.tensionLocative, 1, 5)) errors.tensionLocative = 'Note entre 1 et 5.';
+  if (!isInRange(bien.proximiteCommodites, 1, 5)) errors.proximiteCommodites = 'Note entre 1 et 5.';
+  if (!isInRange(bien.risqueVacance, 1, 5)) errors.risqueVacance = 'Note entre 1 et 5.';
+  if (bien.revenusMensuelsNets != null && bien.revenusMensuelsNets <= 0) {
+    errors.revenusMensuelsNets = 'Revenus > 0 ou laisser vide.';
+  }
 
   return { ok: Object.keys(errors).length === 0, errors };
 }

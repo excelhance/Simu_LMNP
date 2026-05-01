@@ -1,11 +1,31 @@
 // src/persistence/storage.js
 // Persistance localStorage : seul module autorisé à toucher window.localStorage.
-import { STORAGE_KEY, VERSION, FISCAL } from '../core/constants.js';
+import {
+  STORAGE_KEY,
+  VERSION,
+  FISCAL,
+  PONDERATIONS_FAMILLES,
+  PONDERATIONS_F1,
+  PONDERATIONS_F2,
+  PONDERATIONS_F3,
+  PONDERATIONS_F4
+} from '../core/constants.js';
+
+const PONDERATIONS_KEY = STORAGE_KEY + ':ponderations';
 
 const initialState = () => ({
   version: VERSION,
   constantesFiscales: { ...FISCAL },
   biens: []
+});
+
+/** Valeurs par défaut, recopiées depuis constants.js. */
+const ponderationsDefauts = () => ({
+  inter: JSON.parse(JSON.stringify(PONDERATIONS_FAMILLES)),
+  F1: { ...PONDERATIONS_F1 },
+  F2: { ...PONDERATIONS_F2 },
+  F3: JSON.parse(JSON.stringify(PONDERATIONS_F3)),
+  F4: JSON.parse(JSON.stringify(PONDERATIONS_F4))
 });
 
 function genId() {
@@ -75,4 +95,37 @@ export function deleteBien(id) {
   state.biens = state.biens.filter((b) => b.id !== id);
   save(state);
   return state.biens.length !== before;
+}
+
+// ─── Pondérations modifiables (Lot 2) ──────────────────────────────────
+
+/**
+ * Charge les pondérations utilisateur (ou les défauts si rien en localStorage).
+ * Fusionne avec les défauts pour combler d'éventuels champs manquants
+ * (utile lors d'une évolution future de constants.js).
+ */
+export function loadPonderations() {
+  const defauts = ponderationsDefauts();
+  try {
+    const raw = localStorage.getItem(PONDERATIONS_KEY);
+    if (!raw) return defauts;
+    const stored = JSON.parse(raw);
+    return {
+      inter: { ...defauts.inter, ...(stored.inter || {}) },
+      F1: { ...defauts.F1, ...(stored.F1 || {}) },
+      F2: { ...defauts.F2, ...(stored.F2 || {}) },
+      F3: { ...defauts.F3, ...(stored.F3 || {}) },
+      F4: { ...defauts.F4, ...(stored.F4 || {}) }
+    };
+  } catch {
+    return defauts;
+  }
+}
+
+export function savePonderations(p) {
+  localStorage.setItem(PONDERATIONS_KEY, JSON.stringify(p));
+}
+
+export function resetPonderations() {
+  localStorage.removeItem(PONDERATIONS_KEY);
 }
