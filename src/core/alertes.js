@@ -48,6 +48,30 @@ export function evaluerAlertes(bien, indicateurs) {
     });
   }
 
+  // 🟠 Plafond micro-BIC LMNP dépassé (77 700 €)
+  if (
+    bien.regimeFiscal === 'micro-bic-lmnp' &&
+    indicateurs.loyerAnnuelNetVacance > FISCAL.plafondMicroBIC_LMNP
+  ) {
+    alertes.push({
+      niveau: NIVEAUX.ORANGE,
+      code: 'PLAFOND_MICRO_BIC_LMNP',
+      message: `Recettes ${Math.round(indicateurs.loyerAnnuelNetVacance)} € > plafond micro-BIC LMNP ${FISCAL.plafondMicroBIC_LMNP} €. Bascule au régime réel obligatoire.`
+    });
+  }
+
+  // 🟠 Réel LMNP : amortissements > recettes → plafonnés (info)
+  if (
+    bien.regimeFiscal === 'reel-lmnp' &&
+    indicateurs.fiscalite?.amortReporte > 0
+  ) {
+    alertes.push({
+      niveau: NIVEAUX.ORANGE,
+      code: 'AMORT_PLAFONNE',
+      message: `Amortissement plafonné : ${Math.round(indicateurs.fiscalite.amortReporte)} € reportés sur les exercices suivants (sans limite de durée).`
+    });
+  }
+
   // 🟠 Charges copro > 35 €/m²/an : copropriété lourde.
   if (bien.surface > 0 && bien.chargesCopro / bien.surface > 35) {
     const ratio = bien.chargesCopro / bien.surface;

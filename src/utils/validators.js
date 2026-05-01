@@ -47,6 +47,13 @@ export function validerBien(bien) {
   if (bien.revenusMensuelsNets != null && bien.revenusMensuelsNets <= 0) {
     errors.revenusMensuelsNets = 'Revenus > 0 ou laisser vide.';
   }
+  // Lot 3a — types meublés / régime réel.
+  if (bien.mobilier != null && bien.mobilier < 0) {
+    errors.mobilier = 'Mobilier ≥ 0.';
+  }
+  if (bien.honorairesComptables != null && bien.honorairesComptables < 0) {
+    errors.honorairesComptables = 'Honoraires comptables ≥ 0.';
+  }
 
   return { ok: Object.keys(errors).length === 0, errors };
 }

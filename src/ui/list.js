@@ -91,10 +91,14 @@ export function renderList(container) {
         <select id="filtreType" class="rounded-md border border-slate-300 bg-white px-2 py-1 text-sm">
           <option value="">Tous les types</option>
           <option value="LD_nue">LD nue</option>
+          <option value="LD_meublee">LD meublée</option>
         </select>
         <select id="filtreRegime" class="rounded-md border border-slate-300 bg-white px-2 py-1 text-sm">
           <option value="">Tous les régimes</option>
           <option value="micro-foncier">Micro-foncier</option>
+          <option value="reel-foncier">Réel foncier</option>
+          <option value="micro-bic-lmnp">Micro-BIC LMNP</option>
+          <option value="reel-lmnp">Réel LMNP</option>
         </select>
         <button class="btn-secondary" data-action="settings" title="Pondérations">⚙ Pondérations</button>
         <button class="btn-primary" data-action="new">+ Nouveau bien</button>
