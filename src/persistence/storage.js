@@ -12,6 +12,7 @@ import {
 } from '../core/constants.js';
 
 const PONDERATIONS_KEY = STORAGE_KEY + ':ponderations';
+const FISCAL_KEY = STORAGE_KEY + ':fiscal';
 
 const initialState = () => ({
   version: VERSION,
@@ -128,4 +129,41 @@ export function savePonderations(p) {
 
 export function resetPonderations() {
   localStorage.removeItem(PONDERATIONS_KEY);
+}
+
+// ─── Constantes fiscales modifiables (Lot 5) ───────────────────────────
+
+/**
+ * Charge les constantes fiscales effectives = défauts de constants.js
+ * fusionnés avec les éventuelles surcharges utilisateur stockées en localStorage.
+ */
+export function loadFiscal() {
+  const defauts = { ...FISCAL };
+  try {
+    const raw = localStorage.getItem(FISCAL_KEY);
+    if (!raw) return defauts;
+    const stored = JSON.parse(raw);
+    if (!stored || typeof stored !== 'object') return defauts;
+    return { ...defauts, ...stored };
+  } catch {
+    return defauts;
+  }
+}
+
+export function saveFiscal(overrides) {
+  // On ne stocke que les overrides (clés dont la valeur diffère du défaut).
+  const defauts = FISCAL;
+  const diff = {};
+  for (const [k, v] of Object.entries(overrides)) {
+    if (defauts[k] !== v) diff[k] = v;
+  }
+  if (Object.keys(diff).length === 0) {
+    localStorage.removeItem(FISCAL_KEY);
+  } else {
+    localStorage.setItem(FISCAL_KEY, JSON.stringify(diff));
+  }
+}
+
+export function resetFiscal() {
+  localStorage.removeItem(FISCAL_KEY);
 }

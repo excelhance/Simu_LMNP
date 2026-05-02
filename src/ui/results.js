@@ -11,6 +11,7 @@ import {
   couleurScore,
   libelleScore
 } from '../utils/format.js';
+import { renderAmortissementChart, renderCashflowChart } from './charts.js';
 import { navigate } from '../utils/router.js';
 
 function bloc(titre, contenu) {
@@ -239,10 +240,25 @@ export function renderResults(container, id) {
       ${blocAlertes(r.alertes)}
     </div>
 
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4 print:break-before-page">
+      ${bloc('Amortissement du crédit', `<div class="h-72"><canvas id="chartAmort"></canvas></div>`)}
+      ${bloc('Trésorerie projetée sur 10 ans', `<div class="h-72"><canvas id="chartCashflow"></canvas></div>`)}
+    </div>
+
     <div class="mt-4">
       ${bloc('Bloc 5 — Détail scoring', tableauScoring(s.parCritere, s.parFamille))}
     </div>
   `;
+
+  // Rendu des graphiques (après injection HTML pour avoir accès aux canvas).
+  const canvasAmort = container.querySelector('#chartAmort');
+  if (canvasAmort && r.amortissementMensuel?.length > 0) {
+    renderAmortissementChart(canvasAmort, r.amortissementMensuel);
+  }
+  const canvasCF = container.querySelector('#chartCashflow');
+  if (canvasCF && r.tri?.fluxAnnuels) {
+    renderCashflowChart(canvasCF, r.tri, bien.apport || 0);
+  }
 
   container.querySelector('[data-action="back"]').addEventListener('click', () => navigate('/'));
   container.querySelector('[data-action="edit"]').addEventListener('click', () => navigate(`/edit/${id}`));

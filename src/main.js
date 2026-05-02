@@ -4,7 +4,7 @@ import { route, startRouter } from './utils/router.js';
 import { renderList } from './ui/list.js';
 import { renderForm } from './ui/form.js';
 import { renderResults } from './ui/results.js';
-import { renderSettings } from './ui/settings.js';
+import { renderSettings, renderSettingsFiscal } from './ui/settings.js';
 import { renderComparison } from './ui/comparison.js';
 
 const app = document.getElementById('app');
@@ -40,6 +40,11 @@ route(/^\/view\/([^/]+)$/, ([id]) => {
 route(/^\/settings$/, () => {
   const view = shell();
   renderSettings(view);
+});
+
+route(/^\/settings\/fiscal$/, () => {
+  const view = shell();
+  renderSettingsFiscal(view);
 });
 
 route(/^\/compare\/([^/]+)$/, ([idsParam]) => {

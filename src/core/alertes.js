@@ -1,5 +1,6 @@
 // src/core/alertes.js
-// Lot 2 : alertes contextuelles affichées sur l'écran de restitution.
+// Alertes contextuelles affichées sur l'écran de restitution.
+// `fiscal` accepte les constantes utilisateur (Lot 5).
 import { FISCAL } from './constants.js';
 
 export const NIVEAUX = {
@@ -15,7 +16,7 @@ export const NIVEAUX = {
  * @param {object} indicateurs - sortie de calculerLot1() : cashflowMensuel,
  *                               loyerAnnuelNetVacance, mensualiteTotale, etc.
  */
-export function evaluerAlertes(bien, indicateurs) {
+export function evaluerAlertes(bien, indicateurs, fiscal = FISCAL) {
   const alertes = [];
 
   // 🔴 DPE F ou G : interdiction progressive de location en LD nue.
@@ -39,48 +40,48 @@ export function evaluerAlertes(bien, indicateurs) {
   // 🟠 Plafond micro-foncier dépassé (15 000 €/an de loyers)
   if (
     bien.regimeFiscal === 'micro-foncier' &&
-    indicateurs.loyerAnnuelNetVacance > FISCAL.plafondMicroFoncier
+    indicateurs.loyerAnnuelNetVacance > fiscal.plafondMicroFoncier
   ) {
     alertes.push({
       niveau: NIVEAUX.ORANGE,
       code: 'PLAFOND_MICRO_FONCIER',
-      message: `Loyers ${Math.round(indicateurs.loyerAnnuelNetVacance)} € > plafond micro-foncier ${FISCAL.plafondMicroFoncier} €. Bascule au régime réel à envisager.`
+      message: `Loyers ${Math.round(indicateurs.loyerAnnuelNetVacance)} € > plafond micro-foncier ${fiscal.plafondMicroFoncier} €. Bascule au régime réel à envisager.`
     });
   }
 
   // 🟠 Plafond micro-BIC LMNP dépassé (77 700 €)
   if (
     bien.regimeFiscal === 'micro-bic-lmnp' &&
-    indicateurs.loyerAnnuelNetVacance > FISCAL.plafondMicroBIC_LMNP
+    indicateurs.loyerAnnuelNetVacance > fiscal.plafondMicroBIC_LMNP
   ) {
     alertes.push({
       niveau: NIVEAUX.ORANGE,
       code: 'PLAFOND_MICRO_BIC_LMNP',
-      message: `Recettes ${Math.round(indicateurs.loyerAnnuelNetVacance)} € > plafond micro-BIC LMNP ${FISCAL.plafondMicroBIC_LMNP} €. Bascule au régime réel obligatoire.`
+      message: `Recettes ${Math.round(indicateurs.loyerAnnuelNetVacance)} € > plafond micro-BIC LMNP ${fiscal.plafondMicroBIC_LMNP} €. Bascule au régime réel obligatoire.`
     });
   }
 
   // 🟠 Plafond micro-BIC tourisme classé dépassé (77 700 €)
   if (
     bien.regimeFiscal === 'micro-bic-tourisme-classe' &&
-    indicateurs.loyerAnnuelNetVacance > FISCAL.plafondMicroBIC_TourismeClasse
+    indicateurs.loyerAnnuelNetVacance > fiscal.plafondMicroBIC_TourismeClasse
   ) {
     alertes.push({
       niveau: NIVEAUX.ORANGE,
       code: 'PLAFOND_MICRO_BIC_TOURISME_CLASSE',
-      message: `Recettes ${Math.round(indicateurs.loyerAnnuelNetVacance)} € > plafond micro-BIC tourisme classé ${FISCAL.plafondMicroBIC_TourismeClasse} €.`
+      message: `Recettes ${Math.round(indicateurs.loyerAnnuelNetVacance)} € > plafond micro-BIC tourisme classé ${fiscal.plafondMicroBIC_TourismeClasse} €.`
     });
   }
 
   // 🔴 Plafond micro-BIC tourisme NON classé dépassé (15 000 €) — bloquant.
   if (
     bien.regimeFiscal === 'micro-bic-tourisme-non-classe' &&
-    indicateurs.loyerAnnuelNetVacance > FISCAL.plafondMicroBIC_TourismeNonClasse
+    indicateurs.loyerAnnuelNetVacance > fiscal.plafondMicroBIC_TourismeNonClasse
   ) {
     alertes.push({
       niveau: NIVEAUX.ROUGE,
       code: 'PLAFOND_MICRO_BIC_TOURISME_NON_CLASSE',
-      message: `Recettes ${Math.round(indicateurs.loyerAnnuelNetVacance)} € > plafond ${FISCAL.plafondMicroBIC_TourismeNonClasse} € micro-BIC tourisme non classé. Classement Atout France ou bascule au réel obligatoire.`
+      message: `Recettes ${Math.round(indicateurs.loyerAnnuelNetVacance)} € > plafond ${fiscal.plafondMicroBIC_TourismeNonClasse} € micro-BIC tourisme non classé. Classement Atout France ou bascule au réel obligatoire.`
     });
   }
 
