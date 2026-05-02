@@ -96,15 +96,19 @@ export function scoreBien(bien, indicateursFinanciers, ponderations) {
     F3: ponderations?.F3 || PONDERATIONS_F3,
     F4: ponderations?.F4 || PONDERATIONS_F4
   };
-  const type = bien.typeLocation || 'LD_nue';
+  // Les sous-types coloc_meublee / coloc_nue partagent la même grille de pondération « coloc ».
+  const typeBrut = bien.typeLocation || 'LD_nue';
+  const type = (typeBrut === 'coloc_meublee' || typeBrut === 'coloc_nue') ? 'coloc' : typeBrut;
 
   // ─── Sous-scores F1 ────────────────────────────────────────────────
   const sC01 = scoreLineaire(ind.rendementBrut ?? 0, SEUILS_SCORING.C01_rendementBrut);
   const sC02 = scoreLineaire(ind.rendementNet ?? 0, SEUILS_SCORING.C02_rendementNet);
   const sC03 = scoreLineaire(ind.rendementNetNet ?? 0, SEUILS_SCORING.C03_rendementNetNet);
   const sC04 = scoreLineaire(ind.cashflowMensuel ?? 0, SEUILS_SCORING.C04_cashflow);
-  // C05 (TRI 10 ans) — toujours neutralisé en Lot 2 (Lot 3 livre le TRI).
-  const sC05 = 5;
+  // C05 (TRI 10 ans) — actif depuis Lot 3c. Neutralisé (5/10) si non calculable.
+  const sC05 = ind.tri != null
+    ? scoreLineaire(ind.tri, SEUILS_SCORING.C05_tri)
+    : 5;
   const sC06 = scoreLineaire(ind.effortEpargne ?? 0, SEUILS_SCORING.C06_effortEpargne);
 
   const F1 = scoreFamille([
@@ -179,7 +183,7 @@ export function scoreBien(bien, indicateursFinanciers, ponderations) {
       C02: { code: 'C02', label: 'Rendement net charges',  valeur: ind.rendementNet,     sousScore: sC02, ponderation: p.F1.C02, famille: 'F1' },
       C03: { code: 'C03', label: 'Rendement net-net',      valeur: ind.rendementNetNet,  sousScore: sC03, ponderation: p.F1.C03, famille: 'F1' },
       C04: { code: 'C04', label: 'Cash-flow mensuel',      valeur: ind.cashflowMensuel,  sousScore: sC04, ponderation: p.F1.C04, famille: 'F1' },
-      C05: { code: 'C05', label: 'TRI 10 ans (Lot 3)',     valeur: null,                 sousScore: sC05, ponderation: p.F1.C05, famille: 'F1', neutralise: true },
+      C05: { code: 'C05', label: 'TRI 10 ans',              valeur: ind.tri,              sousScore: sC05, ponderation: p.F1.C05, famille: 'F1', neutralise: ind.tri == null },
       C06: { code: 'C06', label: "Effort d'épargne",       valeur: ind.effortEpargne,    sousScore: sC06, ponderation: p.F1.C06, famille: 'F1' },
       C07: { code: 'C07', label: 'Prix au m² vs marché',   valeur: prixM2,               sousScore: sC07, ponderation: p.F2.C07, famille: 'F2' },
       C08: { code: 'C08', label: 'État général (1-5)',     valeur: bien.etatGeneral,     sousScore: sC08, ponderation: p.F2.C08, famille: 'F2' },

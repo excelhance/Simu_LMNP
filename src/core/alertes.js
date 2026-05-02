@@ -48,6 +48,54 @@ export function evaluerAlertes(bien, indicateurs) {
     });
   }
 
+  // 🟠 Plafond micro-BIC LMNP dépassé (77 700 €)
+  if (
+    bien.regimeFiscal === 'micro-bic-lmnp' &&
+    indicateurs.loyerAnnuelNetVacance > FISCAL.plafondMicroBIC_LMNP
+  ) {
+    alertes.push({
+      niveau: NIVEAUX.ORANGE,
+      code: 'PLAFOND_MICRO_BIC_LMNP',
+      message: `Recettes ${Math.round(indicateurs.loyerAnnuelNetVacance)} € > plafond micro-BIC LMNP ${FISCAL.plafondMicroBIC_LMNP} €. Bascule au régime réel obligatoire.`
+    });
+  }
+
+  // 🟠 Plafond micro-BIC tourisme classé dépassé (77 700 €)
+  if (
+    bien.regimeFiscal === 'micro-bic-tourisme-classe' &&
+    indicateurs.loyerAnnuelNetVacance > FISCAL.plafondMicroBIC_TourismeClasse
+  ) {
+    alertes.push({
+      niveau: NIVEAUX.ORANGE,
+      code: 'PLAFOND_MICRO_BIC_TOURISME_CLASSE',
+      message: `Recettes ${Math.round(indicateurs.loyerAnnuelNetVacance)} € > plafond micro-BIC tourisme classé ${FISCAL.plafondMicroBIC_TourismeClasse} €.`
+    });
+  }
+
+  // 🔴 Plafond micro-BIC tourisme NON classé dépassé (15 000 €) — bloquant.
+  if (
+    bien.regimeFiscal === 'micro-bic-tourisme-non-classe' &&
+    indicateurs.loyerAnnuelNetVacance > FISCAL.plafondMicroBIC_TourismeNonClasse
+  ) {
+    alertes.push({
+      niveau: NIVEAUX.ROUGE,
+      code: 'PLAFOND_MICRO_BIC_TOURISME_NON_CLASSE',
+      message: `Recettes ${Math.round(indicateurs.loyerAnnuelNetVacance)} € > plafond ${FISCAL.plafondMicroBIC_TourismeNonClasse} € micro-BIC tourisme non classé. Classement Atout France ou bascule au réel obligatoire.`
+    });
+  }
+
+  // 🟠 Réel LMNP : amortissements > recettes → plafonnés (info)
+  if (
+    bien.regimeFiscal === 'reel-lmnp' &&
+    indicateurs.fiscalite?.amortReporte > 0
+  ) {
+    alertes.push({
+      niveau: NIVEAUX.ORANGE,
+      code: 'AMORT_PLAFONNE',
+      message: `Amortissement plafonné : ${Math.round(indicateurs.fiscalite.amortReporte)} € reportés sur les exercices suivants (sans limite de durée).`
+    });
+  }
+
   // 🟠 Charges copro > 35 €/m²/an : copropriété lourde.
   if (bien.surface > 0 && bien.chargesCopro / bien.surface > 35) {
     const ratio = bien.chargesCopro / bien.surface;
