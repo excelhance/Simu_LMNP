@@ -2,6 +2,52 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─── Mode impression : restitution propre sur A4 ─────────────────────── */
+@media print {
+  /* Masquer tous les boutons d'action et la barre fixe en bas du formulaire. */
+  button,
+  .btn,
+  .btn-primary,
+  .btn-secondary,
+  .btn-danger,
+  .btn-ghost,
+  [data-action="back"],
+  [data-action="edit"],
+  [data-action="delete"],
+  [data-action="new"],
+  [data-action="settings"],
+  [data-action="export"],
+  [data-action="import"],
+  [data-action="compare"],
+  .fixed {
+    display: none !important;
+  }
+  body {
+    background: white !important;
+    color: #111 !important;
+  }
+  .card {
+    box-shadow: none !important;
+    border: 1px solid #ddd !important;
+    break-inside: avoid;
+  }
+  /* Forcer l'ouverture des accordéons. */
+  details {
+    open: true;
+  }
+  details > summary {
+    display: none;
+  }
+  details > div {
+    display: grid !important;
+  }
+  /* Les graphiques peuvent prendre une page chacun. */
+  canvas {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+}
+
 @layer components {
   .btn {
     @apply inline-flex items-center justify-center rounded-md px-3 py-2 text-sm font-medium transition-colors;
@@ -39,5 +85,14 @@
   }
   .accordion-summary {
     @apply cursor-pointer select-none font-semibold text-slate-800 py-2 flex items-center justify-between;
+  }
+}
+
+/* Évite les inputs au zoom auto sur iOS Safari (font-size < 16 px déclenche un zoom). */
+@media (max-width: 768px) {
+  input[type="number"],
+  input[type="text"],
+  select {
+    font-size: 16px !important;
   }
 }

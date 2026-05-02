@@ -1,5 +1,6 @@
 // src/core/tri.js
 // TRI sur 10 ans : projection des flux de trésorerie + plus-value à la revente.
+// Le paramètre `fiscal` (Lot 5) accepte les constantes utilisateur.
 import { FISCAL } from './constants.js';
 
 /**
@@ -123,12 +124,12 @@ export function calculerTRI(flux, borneMin = -0.5, borneMax = 0.5, tolerance = 0
  * @param {object} indicateurs - sortie de calculerLot1 (avant scoring)
  * @returns {{tri:number|null, valeurRevente:number, capitalRestantA10:number, valeurNetteRevente:number, fluxAnnuels:number[], pv:object}}
  */
-export function tri10ans(bien, indicateurs) {
+export function tri10ans(bien, indicateurs, fiscal = FISCAL) {
   const apport = bien.apport || 0;
   const cashflowAnnuel = (indicateurs.cashflowMensuel || 0) * 12;
 
   const valeurRevente = (bien.prix || 0)
-    * Math.pow(1 + FISCAL.revalorisationBienAnnuelle, 10);
+    * Math.pow(1 + fiscal.revalorisationBienAnnuelle, 10);
   const capitalRestantA10 = indicateurs.resumeAmort?.a10 ?? 0;
 
   const pv = impotPlusValue({

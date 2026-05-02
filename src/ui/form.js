@@ -1,11 +1,10 @@
 // src/ui/form.js
 // Écran « Saisie » : formulaire multi-types (Lot 3a : LD nue + LD meublée).
 
-import { upsertBien, getBien } from '../persistence/storage.js';
+import { upsertBien, getBien, loadFiscal } from '../persistence/storage.js';
 import { validerBien } from '../utils/validators.js';
 import { calculerLot1 } from '../core/calcul.js';
 import { formatNombre } from '../utils/format.js';
-import { FISCAL } from '../core/constants.js';
 import { navigate } from '../utils/router.js';
 
 // ─── Catalogue types / régimes ────────────────────────────────────────
@@ -49,8 +48,9 @@ const REGIMES_PAR_TYPE = {
 const TYPES_MEUBLES = new Set(['LD_meublee', 'LCD', 'LMD', 'coloc_meublee']);
 const REGIMES_REEL_BIC = new Set(['reel-lmnp']);
 
-/** Valeurs par défaut pour un nouveau bien. */
+/** Valeurs par défaut pour un nouveau bien (utilise les constantes effectives). */
 function defaultBien() {
+  const fiscal = loadFiscal();
   return {
     nom: '',
     adresse: '',
@@ -100,7 +100,7 @@ function defaultBien() {
     assurancePNO: 0,
     fraisGestionTaux: 0,
     honorairesComptables: 800,
-    tmi: FISCAL.TMI,
+    tmi: fiscal.TMI,
     revenusMensuelsNets: null
   };
 }
@@ -172,7 +172,7 @@ function lireFormulaire(form, bienBase) {
   data.prix = toNumber(form.prix.value);
   data.fraisNotaireTauxAuto = form.fraisNotaireTauxAuto.checked;
   if (data.fraisNotaireTauxAuto) {
-    data.fraisNotaire = (data.prix || 0) * FISCAL.fraisNotaireAncienTaux;
+    data.fraisNotaire = (data.prix || 0) * loadFiscal().fraisNotaireAncienTaux;
   } else {
     data.fraisNotaire = toNumber(form.fraisNotaire.value);
   }
@@ -261,7 +261,7 @@ function rafraichirCalculsLive(form) {
     form.querySelector('#mensualiteTotaleAffiche').value = formatNombre(r.mensualiteTotale, 2);
   }
   if (form.fraisNotaireTauxAuto.checked) {
-    form.fraisNotaire.value = Math.round((toNumber(form.prix.value) || 0) * FISCAL.fraisNotaireAncienTaux);
+    form.fraisNotaire.value = Math.round((toNumber(form.prix.value) || 0) * loadFiscal().fraisNotaireAncienTaux);
     form.fraisNotaire.readOnly = true;
   } else {
     form.fraisNotaire.readOnly = false;
@@ -334,7 +334,7 @@ export function renderForm(container, idEdition = null) {
       ${section('sec-fin', 'C. Financier', `
         ${field({ id: 'prix', label: 'Prix d’acquisition', suffix: '€', value: bien.prix })}
         ${field({ id: 'fraisNotaireTauxAuto', label: 'Frais notaire auto (8 %)', type: 'checkbox', value: bien.fraisNotaireTauxAuto })}
-        ${field({ id: 'fraisNotaire', label: 'Frais notaire', suffix: '€', value: bien.fraisNotaire ?? Math.round((bien.prix || 0) * FISCAL.fraisNotaireAncienTaux), readonly: bien.fraisNotaireTauxAuto })}
+        ${field({ id: 'fraisNotaire', label: 'Frais notaire', suffix: '€', value: bien.fraisNotaire ?? Math.round((bien.prix || 0) * loadFiscal().fraisNotaireAncienTaux), readonly: bien.fraisNotaireTauxAuto })}
         <div data-cond="mobilier" class="contents">
           ${field({ id: 'mobilier', label: 'Mobilier / aménagement', suffix: '€', value: bien.mobilier, hint: 'Visible si type meublé. Inclus dans le coût total et amortissable au réel.' })}
         </div>

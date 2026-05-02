@@ -13,11 +13,10 @@ import {
   cashflowMensuel
 } from './finance.js';
 import { microFoncier, microBIC, reelFoncier, reelLMNP } from './fiscalite.js';
-import { FISCAL } from './constants.js';
 import { scoreBien } from './scoring.js';
 import { evaluerAlertes } from './alertes.js';
 import { tri10ans } from './tri.js';
-import { loadPonderations } from '../persistence/storage.js';
+import { loadPonderations, loadFiscal } from '../persistence/storage.js';
 
 /**
  * Loyer annuel brut net de vacance, selon le type de location.
@@ -92,14 +91,14 @@ function loyerMensuelTypique(bien) {
  * Sélectionne et exécute le calcul fiscal correspondant au régime du bien.
  * @returns {object} sortie standardisée incluant `regime`, `impotTotal`, etc.
  */
-function calculerFiscalite(bien, contexte) {
-  const tmi = bien.tmi ?? FISCAL.TMI;
-  const ps = FISCAL.PS;
+function calculerFiscalite(bien, contexte, fiscal) {
+  const tmi = bien.tmi ?? fiscal.TMI;
+  const ps = fiscal.PS;
   const regime = bien.regimeFiscal || 'micro-foncier';
 
   switch (regime) {
     case 'micro-foncier':
-      return microFoncier(contexte.loyersAnnuels, tmi, ps);
+      return microFoncier(contexte.loyersAnnuels, tmi, ps, fiscal);
 
     case 'reel-foncier':
       return reelFoncier(
@@ -107,34 +106,38 @@ function calculerFiscalite(bien, contexte) {
         contexte.chargesAnnuellesHorsInterets,
         contexte.interetsAnnuels,
         tmi,
-        ps
+        ps,
+        fiscal
       );
 
     case 'micro-bic-lmnp':
       return microBIC(
         contexte.loyersAnnuels,
-        FISCAL.abattementMicroBIC_LMNP,
-        FISCAL.plafondMicroBIC_LMNP,
+        fiscal.abattementMicroBIC_LMNP,
+        fiscal.plafondMicroBIC_LMNP,
         tmi,
-        ps
+        ps,
+        fiscal
       );
 
     case 'micro-bic-tourisme-classe':
       return microBIC(
         contexte.loyersAnnuels,
-        FISCAL.abattementMicroBIC_TourismeClasse,
-        FISCAL.plafondMicroBIC_TourismeClasse,
+        fiscal.abattementMicroBIC_TourismeClasse,
+        fiscal.plafondMicroBIC_TourismeClasse,
         tmi,
-        ps
+        ps,
+        fiscal
       );
 
     case 'micro-bic-tourisme-non-classe':
       return microBIC(
         contexte.loyersAnnuels,
-        FISCAL.abattementMicroBIC_TourismeNonClasse,
-        FISCAL.plafondMicroBIC_TourismeNonClasse,
+        fiscal.abattementMicroBIC_TourismeNonClasse,
+        fiscal.plafondMicroBIC_TourismeNonClasse,
         tmi,
-        ps
+        ps,
+        fiscal
       );
 
     case 'reel-lmnp':
@@ -148,11 +151,12 @@ function calculerFiscalite(bien, contexte) {
         travaux: bien.travauxAPrevoir || 0,
         tmi,
         ps,
-        plafond: FISCAL.plafondMicroBIC_LMNP
+        plafond: fiscal.plafondMicroBIC_LMNP,
+        fiscal
       });
 
     default:
-      return microFoncier(contexte.loyersAnnuels, tmi, ps);
+      return microFoncier(contexte.loyersAnnuels, tmi, ps, fiscal);
   }
 }
 
@@ -162,6 +166,9 @@ function calculerFiscalite(bien, contexte) {
  * @returns {object} indicateurs + fiscalité + scoring + alertes + amortissement résumé
  */
 export function calculerLot1(bien) {
+  // Constantes fiscales effectives (Lot 5) : défauts + surcharges utilisateur.
+  const fiscal = loadFiscal();
+
   // ─── Coût total d'acquisition + capital emprunté ──────────────────
   const CTA = coutTotalAcquisition({
     prix: bien.prix || 0,
@@ -219,7 +226,7 @@ export function calculerLot1(bien) {
     loyersAnnuels: loyerAnnuelNetVacance,
     chargesAnnuellesHorsInterets,
     interetsAnnuels: interetsAnnee1
-  });
+  }, fiscal);
   const impotMensuel = fisc.impotTotal / 12;
 
   // ─── Indicateurs financiers ───────────────────────────────────────
@@ -244,7 +251,7 @@ export function calculerLot1(bien) {
     resumeAmort,
     fiscalite: fisc
   };
-  const tri = tri10ans(bien, indicateursPourTRI);
+  const tri = tri10ans(bien, indicateursPourTRI, fiscal);
   // Le score lit le TRI en pourcentage (ex 6.5 pour 6.5 %).
   const triPct = tri.tri != null ? tri.tri * 100 : null;
 
@@ -280,10 +287,11 @@ export function calculerLot1(bien) {
     fiscalite: fisc,
     impotMensuel,
     resumeAmort,
+    amortissementMensuel: amort,
     tri,
     scoring
   };
 
-  indicateurs.alertes = evaluerAlertes(bien, indicateurs);
+  indicateurs.alertes = evaluerAlertes(bien, indicateurs, fiscal);
   return indicateurs;
 }
