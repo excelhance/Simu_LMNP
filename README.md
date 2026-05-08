@@ -2,6 +2,9 @@
 
 Calculateur locatif personnel — Lot 1 (LD nue / micro-foncier).
 
+Lien de la page publiée :
+https://excelhance.github.io/Simu_LMNP/
+
 > Stack : Vite + TailwindCSS + Chart.js (chart.js installé pour les Lots ultérieurs).
 
 ## Périmètre Lot 1
